@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistem Informasi Geografis Kebencanaan Indonesia</title>
+    
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    
+    <!-- Leaflet MarkerCluster CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="header-content">
+            <div class="logo">
+                <i class="fas fa-map-marked-alt"></i>
+                <h1>SIG Kebencanaan Indonesia</h1>
+            </div>
+            <nav class="nav-menu">
+                <button class="nav-btn active" data-view="map">
+                    <i class="fas fa-map"></i> Peta
+                </button>
+                <button class="nav-btn" data-view="statistics">
+                    <i class="fas fa-chart-bar"></i> Statistik
+                </button>
+                <button class="nav-btn" data-view="info">
+                    <i class="fas fa-info-circle"></i> Info
+                </button>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-section">
+                <h3><i class="fas fa-filter"></i> Filter Bencana</h3>
+                <div class="filter-group">
+                    <label class="filter-item">
+                        <input type="checkbox" class="disaster-filter" value="gempa" checked>
+                        <span class="filter-label gempa">
+                            <i class="fas fa-house-damage"></i> Gempa Bumi
+                        </span>
+                    </label>
+                    <label class="filter-item">
+                        <input type="checkbox" class="disaster-filter" value="tsunami" checked>
+                        <span class="filter-label tsunami">
+                            <i class="fas fa-water"></i> Tsunami
+                        </span>
+                    </label>
+                    <label class="filter-item">
+                        <input type="checkbox" class="disaster-filter" value="banjir" checked>
+                        <span class="filter-label banjir">
+                            <i class="fas fa-house-flood-water"></i> Banjir
+                        </span>
+                    </label>
+                    <label class="filter-item">
+                        <input type="checkbox" class="disaster-filter" value="longsor" checked>
+                        <span class="filter-label longsor">
+                            <i class="fas fa-mountain"></i> Tanah Longsor
+                        </span>
+                    </label>
+                    <label class="filter-item">
+                        <input type="checkbox" class="disaster-filter" value="gunung" checked>
+                        <span class="filter-label gunung">
+                            <i class="fas fa-volcano"></i> Gunung Berapi
+                        </span>
+                    </label>
+                    <label class="filter-item">
+                        <input type="checkbox" class="disaster-filter" value="kebakaran" checked>
+                        <span class="filter-label kebakaran">
+                            <i class="fas fa-fire"></i> Kebakaran Hutan
+                        </span>
+                    </label>
+                </div>
+            </div>
+
+            <div class="sidebar-section">
+                <h3><i class="fas fa-exclamation-triangle"></i> Tingkat Bahaya</h3>
+                <div class="filter-group">
+                    <label class="filter-item">
+                        <input type="checkbox" class="severity-filter" value="tinggi" checked>
+                        <span class="severity-badge tinggi">Tinggi</span>
+                    </label>
+                    <label class="filter-item">
+                        <input type="checkbox" class="severity-filter" value="sedang" checked>
+                        <span class="severity-badge sedang">Sedang</span>
+                    </label>
+                    <label class="filter-item">
+                        <input type="checkbox" class="severity-filter" value="rendah" checked>
+                        <span class="severity-badge rendah">Rendah</span>
+                    </label>
+                </div>
+            </div>
+
+            <div class="sidebar-section">
+                <h3><i class="fas fa-list"></i> Kejadian Terbaru</h3>
+                <div id="recentDisasters" class="recent-list">
+                    <!-- Will be populated by JavaScript -->
+                </div>
+            </div>
+
+            <div class="sidebar-section stats-summary">
+                <h3><i class="fas fa-chart-pie"></i> Ringkasan</h3>
+                <div class="stat-item">
+                    <span class="stat-label">Total Kejadian:</span>
+                    <span class="stat-value" id="totalEvents">0</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Tingkat Tinggi:</span>
+                    <span class="stat-value tinggi" id="highSeverity">0</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Tingkat Sedang:</span>
+                    <span class="stat-value sedang" id="mediumSeverity">0</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Tingkat Rendah:</span>
+                    <span class="stat-value rendah" id="lowSeverity">0</span>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Map Container -->
+        <div class="content-area">
+            <!-- Map View -->
+            <div id="mapView" class="view-container active">
+                <div id="map"></div>
+                
+                <!-- Map Controls -->
+                <div class="map-controls">
+                    <button class="control-btn" id="locateBtn" title="Lokasi Saya">
+                        <i class="fas fa-location-crosshairs"></i>
+                    </button>
+                    <button class="control-btn" id="refreshBtn" title="Refresh Data">
+                        <i class="fas fa-sync-alt"></i>
+                    </button>
+                    <button class="control-btn" id="fullscreenBtn" title="Fullscreen">
+                        <i class="fas fa-expand"></i>
+                    </button>
+                </div>
+
+                <!-- Legend -->
+                <div class="legend">
+                    <h4><i class="fas fa-map-legend"></i> Legenda</h4>
+                    <div class="legend-item">
+                        <span class="legend-icon gempa"><i class="fas fa-house-damage"></i></span>
+                        <span>Gempa Bumi</span>
+                    </div>
+                    <div class="legend-item">
+                        <span class="legend-icon tsunami"><i class="fas fa-water"></i></span>
+                        <span>Tsunami</span>
+                    </div>
+                    <div class="legend-item">
+                        <span class="legend-icon banjir"><i class="fas fa-house-flood-water"></i></span>
+                        <span>Banjir</span>
+                    </div>
+                    <div class="legend-item">
+                        <span class="legend-icon longsor"><i class="fas fa-mountain"></i></span>
+                        <span>Tanah Longsor</span>
+                    </div>
+                    <div class="legend-item">
+                        <span class="legend-icon gunung"><i class="fas fa-volcano"></i></span>
+                        <span>Gunung Berapi</span>
+                    </div>
+                    <div class="legend-item">
+                        <span class="legend-icon kebakaran"><i class="fas fa-fire"></i></span>
+                        <span>Kebakaran Hutan</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Statistics View -->
+            <div id="statisticsView" class="view-container">
+                <div class="stats-container">
+                    <h2><i class="fas fa-chart-bar"></i> Statistik Kebencanaan</h2>
+                    
+                    <div class="chart-grid">
+                        <div class="chart-card">
+                            <h3>Kejadian per Jenis Bencana</h3>
+                            <canvas id="disasterTypeChart"></canvas>
+                        </div>
+                        
+                        <div class="chart-card">
+                            <h3>Tingkat Bahaya</h3>
+                            <canvas id="severityChart"></canvas>
+                        </div>
+                        
+                        <div class="chart-card">
+                            <h3>Tren Bulanan</h3>
+                            <canvas id="trendChart"></canvas>
+                        </div>
+                        
+                        <div class="chart-card">
+                            <h3>Distribusi Regional</h3>
+                            <canvas id="regionalChart"></canvas>
+                        </div>
+                    </div>
+
+                    <div class="detailed-stats">
+                        <h3><i class="fas fa-table"></i> Data Detail</h3>
+                        <div id="detailedTable" class="table-container">
+                            <!-- Will be populated by JavaScript -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Info View -->
+            <div id="infoView" class="view-container">
+                <div class="info-container">
+                    <h2><i class="fas fa-info-circle"></i> Informasi & Panduan Kebencanaan</h2>
+                    
+                    <div class="info-grid">
+                        <div class="info-card gempa">
+                            <div class="info-icon">
+                                <i class="fas fa-house-damage"></i>
+                            </div>
+                            <h3>Gempa Bumi</h3>
+                            <p>Getaran atau guncangan yang terjadi di permukaan bumi akibat pelepasan energi dari dalam secara tiba-tiba.</p>
+                            <div class="info-actions">
+                                <h4>Tindakan Darurat:</h4>
+                                <ul>
+                                    <li>Lindungi kepala dan berlindung di bawah meja</li>
+                                    <li>Jauhi jendela dan benda yang bisa jatuh</li>
+                                    <li>Keluar ke area terbuka setelah guncangan berhenti</li>
+                                    <li>Waspadai gempa susulan</li>
+                                </ul>
+                            </div>
+                        </div>
+
+                        <div class="info-card tsunami">
+                            <div class="info-icon">
+                                <i class="fas fa-water"></i>
+                            </div>
+                            <h3>Tsunami</h3>
+                            <p>Gelombang laut raksasa yang disebabkan oleh gempa bumi di dasar laut, letusan gunung berapi, atau longsor bawah laut.</p>
+                            <div class="info-actions">
+                                <h4>Tindakan Darurat:</h4>
+                                <ul>
+                                    <li>Segera ke tempat tinggi jika ada peringatan</li>
+                                    <li>Jauhi pantai dan daerah pesisir</li>
+                                    <li>Jangan kembali sebelum dinyatakan aman</li>
+                                    <li>Waspadai gelombang susulan</li>
+                                </ul>
+                            </div>
+                        </div>
+
+                        <div class="info-card banjir">
+                            <div class="info-icon">
+                                <i class="fas fa-house-flood-water"></i>
+                            </div>
+                            <h3>Banjir</h3>
+                            <p>Peristiwa meluapnya air sungai, danau, atau drainase yang menggenangi daratan.</p>
+                            <div class="info-actions">
+                                <h4>Tindakan Darurat:</h4>
+                                <ul>
+                                    <li>Pindah ke tempat yang lebih tinggi</li>
+                                    <li>Matikan listrik dan gas</li>
+                                    <li>Jangan melewati air mengalir yang dalam</li>
+                                    <li>Simpan dokumen penting di tempat aman</li>
+                                </ul>
+                            </div>
+                        </div>
+
+                        <div class="info-card longsor">
+                            <div class="info-icon">
+                                <i class="fas fa-mountain"></i>
+                            </div>
+                            <h3>Tanah Longsor</h3>
+                            <p>Pergerakan massa tanah atau batuan menuruni lereng akibat gravitasi dan faktor pemicu lainnya.</p>
+                            <div class="info-actions">
+                                <h4>Tindakan Darurat:</h4>
+                                <ul>
+                                    <li>Segera tinggalkan area rawan longsor</li>
+                                    <li>Waspadai tanda-tanda: retakan tanah, air keruh</li>
+                                    <li>Pindah ke area yang stabil</li>
+                                    <li>Laporkan ke pihak berwenang</li>
+                                </ul>
+                            </div>
+                        </div>
+
+                        <div class="info-card gunung">
+                            <div class="info-icon">
+                                <i class="fas fa-volcano"></i>
+                            </div>
+                            <h3>Gunung Berapi</h3>
+                            <p>Letusan gunung berapi yang mengeluarkan material vulkanik seperti lava, abu, dan gas.</p>
+                            <div class="info-actions">
+                                <h4>Tindakan Darurat:</h4>
+                                <ul>
+                                    <li>Ikuti arahan evakuasi pemerintah</li>
+                                    <li>Gunakan masker untuk melindungi pernapasan</li>
+                                    <li>Tutup semua ventilasi rumah</li>
+                                    <li>Hindari daerah aliran lahar</li>
+                                </ul>
+                            </div>
+                        </div>
+
+                        <div class="info-card kebakaran">
+                            <div class="info-icon">
+                                <i class="fas fa-fire"></i>
+                            </div>
+                            <h3>Kebakaran Hutan</h3>
+                            <p>Kebakaran yang terjadi di area hutan atau lahan yang dapat meluas dengan cepat.</p>
+                            <div class="info-actions">
+                                <h4>Tindakan Darurat:</h4>
+                                <ul>
+                                    <li>Evakuasi segera jika api mendekat</li>
+                                    <li>Gunakan kain basah untuk pernapasan</li>
+                                    <li>Hubungi pemadam kebakaran (113)</li>
+                                    <li>Hindari asap tebal</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="emergency-contacts">
+                        <h3><i class="fas fa-phone-alt"></i> Kontak Darurat</h3>
+                        <div class="contact-grid">
+                            <div class="contact-item">
+                                <i class="fas fa-ambulance"></i>
+                                <div>
+                                    <strong>Ambulans</strong>
+                                    <p>118 / 119</p>
+                                </div>
+                            </div>
+                            <div class="contact-item">
+                                <i class="fas fa-fire-extinguisher"></i>
+                                <div>
+                                    <strong>Pemadam Kebakaran</strong>
+                                    <p>113</p>
+                                </div>
+                            </div>
+                            <div class="contact-item">
+                                <i class="fas fa-police"></i>
+                                <div>
+                                    <strong>Polisi</strong>
+                                    <p>110</p>
+                                </div>
+                            </div>
+                            <div class="contact-item">
+                                <i class="fas fa-search"></i>
+                                <div>
+                                    <strong>SAR</strong>
+                                    <p>115</p>
+                                </div>
+                            </div>
+                            <div class="contact-item">
+                                <i class="fas fa-shield-alt"></i>
+                                <div>
+                                    <strong>BNPB</strong>
+                                    <p>117</p>
+                                </div>
+                            </div>
+                            <div class="contact-item">
+                                <i class="fas fa-hospital"></i>
+                                <div>
+                                    <strong>PMI</strong>
+                                    <p>021-7992325</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Modal for Disaster Details -->
+    <div id="disasterModal" class="modal">
+        <div class="modal-content">
+            <span class="modal-close">&times;</span>
+            <div id="modalBody">
+                <!-- Will be populated by JavaScript -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="toast"></div>
+
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    
+    <!-- Leaflet MarkerCluster JS -->
+    <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+    
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js"></script>
+    
+    <!-- Custom JS -->
+    <script src="script.js"></script>
+</body>
+</html>

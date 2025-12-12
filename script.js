@@ -276,6 +276,8 @@ function initFilters() {
 // Initialize navigation
 function initNavigation() {
     const navButtons = document.querySelectorAll('.nav-btn');
+    const sidebar = document.querySelector('.sidebar');
+    const contentArea = document.querySelector('.content-area');
     
     navButtons.forEach(btn => {
         btn.addEventListener('click', function() {
@@ -289,11 +291,17 @@ function initNavigation() {
             document.querySelectorAll('.view-container').forEach(v => v.classList.remove('active'));
             document.getElementById(`${view}View`).classList.add('active');
             
-            // Invalidate map size when switching to map view
+            // Toggle sidebar based on view
             if (view === 'map') {
+                sidebar.classList.add('show');
+                contentArea.classList.add('with-sidebar');
                 setTimeout(() => map.invalidateSize(), 100);
+            } else {
+                sidebar.classList.remove('show');
+                contentArea.classList.remove('with-sidebar');
             }
-              // Update charts when switching to statistics view
+            
+            // Update charts when switching to statistics view
             if (view === 'statistics') {
                 updateCharts();
             }
@@ -434,6 +442,12 @@ function viewDisasterOnMap(disasterId) {
     
     document.querySelectorAll('.view-container').forEach(v => v.classList.remove('active'));
     document.getElementById('mapView').classList.add('active');
+    
+    // Show sidebar when switching to map
+    const sidebar = document.querySelector('.sidebar');
+    const contentArea = document.querySelector('.content-area');
+    sidebar.classList.add('show');
+    contentArea.classList.add('with-sidebar');
     
     // Wait for map to be visible, then center and zoom
     setTimeout(() => {

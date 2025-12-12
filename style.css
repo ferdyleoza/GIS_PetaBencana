@@ -115,6 +115,11 @@ body {
     padding: 1.5rem;
     overflow-y: auto;
     box-shadow: var(--shadow);
+    display: none; /* Hidden by default */
+}
+
+.sidebar.show {
+    display: block;
 }
 
 .sidebar-section {
@@ -283,6 +288,11 @@ body {
     flex: 1;
     position: relative;
     background: var(--white);
+    margin-left: 0;
+    transition: margin-left 0.3s ease;
+}
+
+.content-area.with-sidebar {
     margin-left: 1rem;
     border-radius: 10px;
     overflow: hidden;

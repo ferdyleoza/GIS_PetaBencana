@@ -68,6 +68,7 @@ document.addEventListener('DOMContentLoaded', function() {
     initMap();
     initFilters();
     initNavigation();
+    initDashboard();
     updateRecentDisasters();
     updateStatsSummary();
     initCharts();
@@ -158,13 +159,13 @@ function createMarker(disaster) {
         className: '',
         iconSize: [35, 35]
     });
-    
-    const marker = L.marker([disaster.lat, disaster.lng], { icon: customIcon });
+      const marker = L.marker([disaster.lat, disaster.lng], { 
+        icon: customIcon,
+        disasterData: disaster
+    });
     
     const popupContent = createPopupContent(disaster);
     marker.bindPopup(popupContent, { maxWidth: 350 });
-    
-    marker.disasterData = disaster;
     
     return marker;
 }
@@ -254,6 +255,8 @@ function initFilters() {
             updateMarkers();
             updateRecentDisasters();
             updateStatsSummary();
+            updateDashboardStats();
+            renderDisasterCards();
             updateCharts();
         });
     });
@@ -263,6 +266,8 @@ function initFilters() {
             updateMarkers();
             updateRecentDisasters();
             updateStatsSummary();
+            updateDashboardStats();
+            renderDisasterCards();
             updateCharts();
         });
     });
@@ -288,13 +293,170 @@ function initNavigation() {
             if (view === 'map') {
                 setTimeout(() => map.invalidateSize(), 100);
             }
-            
-            // Update charts when switching to statistics view
+              // Update charts when switching to statistics view
             if (view === 'statistics') {
                 updateCharts();
             }
+            
+            // Update dashboard when switching to dashboard view
+            if (view === 'dashboard') {
+                updateDashboardStats();
+            }
         });
     });
+}
+
+// Initialize Dashboard
+function initDashboard() {
+    updateDashboardStats();
+    renderDisasterCards();
+    initAccordion();
+}
+
+// Initialize Accordion
+function initAccordion() {
+    const accordionHeaders = document.querySelectorAll('.info-accordion-header');
+    
+    accordionHeaders.forEach(header => {
+        header.addEventListener('click', function() {
+            const item = this.parentElement;
+            const isActive = item.classList.contains('active');
+            
+            // Close all accordion items
+            document.querySelectorAll('.info-accordion-item').forEach(i => {
+                i.classList.remove('active');
+            });
+            
+            // Open clicked item if it wasn't active
+            if (!isActive) {
+                item.classList.add('active');
+            }
+        });
+    });
+}
+
+// Update Dashboard Statistics
+function updateDashboardStats() {
+    const activeTypes = getActiveFilters('disaster-filter');
+    const activeSeverities = getActiveFilters('severity-filter');
+    
+    const filteredData = disasterData.filter(disaster => 
+        activeTypes.includes(disaster.type) && 
+        activeSeverities.includes(disaster.severity)
+    );
+    
+    // Total kejadian
+    document.getElementById('dash-total').textContent = filteredData.length;
+    
+    // Bahaya tinggi
+    const highSeverity = filteredData.filter(d => d.severity === 'tinggi').length;
+    document.getElementById('dash-high').textContent = highSeverity;
+    
+    // Total korban
+    const totalCasualties = filteredData.reduce((sum, d) => sum + d.casualties, 0);
+    document.getElementById('dash-casualties').textContent = totalCasualties.toLocaleString();
+    
+    // Bulan ini
+    const currentMonth = new Date().getMonth();
+    const currentYear = new Date().getFullYear();
+    const thisMonth = filteredData.filter(d => {
+        const disasterDate = new Date(d.date);
+        return disasterDate.getMonth() === currentMonth && 
+               disasterDate.getFullYear() === currentYear;
+    }).length;
+    document.getElementById('dash-recent').textContent = thisMonth;
+}
+
+// Render Disaster Cards
+function renderDisasterCards() {
+    const container = document.getElementById('disasterCards');
+    const activeTypes = getActiveFilters('disaster-filter');
+    const activeSeverities = getActiveFilters('severity-filter');
+    
+    const filteredData = disasterData.filter(disaster => 
+        activeTypes.includes(disaster.type) && 
+        activeSeverities.includes(disaster.severity)
+    );
+    
+    // Sort by date (newest first)
+    const sortedData = filteredData.sort((a, b) => new Date(b.date) - new Date(a.date));
+    
+    container.innerHTML = sortedData.map(disaster => `
+        <div class="disaster-card ${disaster.type}">
+            <div class="disaster-card-header">
+                <div class="disaster-card-icon ${disaster.type}">
+                    <i class="fas ${config.icons[disaster.type]}"></i>
+                </div>
+                <span class="disaster-severity-badge ${disaster.severity}">${disaster.severity.toUpperCase()}</span>
+            </div>
+            <div class="disaster-card-body">
+                <h4 class="disaster-card-title">${disaster.name}</h4>
+                <div class="disaster-card-info">
+                    <div class="info-item">
+                        <i class="fas fa-map-marker-alt"></i>
+                        <span>${disaster.location}</span>
+                    </div>
+                    <div class="info-item">
+                        <i class="fas fa-calendar"></i>
+                        <span>${formatDate(disaster.date)}</span>
+                    </div>
+                    <div class="info-item">
+                        <i class="fas fa-users"></i>
+                        <span>${disaster.casualties} korban</span>
+                    </div>
+                    <div class="info-item">
+                        <i class="fas fa-chart-line"></i>
+                        <span>${disaster.magnitude}</span>
+                    </div>
+                </div>
+                <p class="disaster-card-description">${disaster.description}</p>
+            </div>
+            <div class="disaster-card-footer">
+                <button class="btn-view-map" onclick="viewDisasterOnMap(${disaster.id})">
+                    <i class="fas fa-map-marked-alt"></i> Lihat Peta
+                </button>
+                <button class="btn-detail" onclick="showDisasterDetail(${disaster.id})">
+                    <i class="fas fa-info-circle"></i> Detail
+                </button>
+            </div>
+        </div>
+    `).join('');
+}
+
+// View disaster on map
+function viewDisasterOnMap(disasterId) {
+    const disaster = disasterData.find(d => d.id === disasterId);
+    if (!disaster) return;
+    
+    // Switch to map view
+    document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+    document.querySelector('.nav-btn[data-view="map"]').classList.add('active');
+    
+    document.querySelectorAll('.view-container').forEach(v => v.classList.remove('active'));
+    document.getElementById('mapView').classList.add('active');
+    
+    // Wait for map to be visible, then center and zoom
+    setTimeout(() => {
+        map.invalidateSize();
+        map.setView([disaster.lat, disaster.lng], 12);
+        
+        // Find and open the marker popup
+        markers.forEach(marker => {
+            const markerData = marker.options.disasterData;
+            if (markerData && markerData.id === disasterId) {
+                marker.openPopup();
+            }
+        });
+        
+        showToast(`Menampilkan lokasi: ${disaster.name}`, 'info');
+    }, 100);
+}
+
+// Format date
+function formatDate(dateString) {
+    const date = new Date(dateString);
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+    return `${date.getDate()} ${months[date.getMonth()]} ${date.getFullYear()}`;
 }
 
 // Update recent disasters list
